@@ -11,8 +11,9 @@ import os
 
 import shutil
 
-src = "sample_data/zz_astropi_1_photo_"
+src = "sample_data/"
 dst = "capture/"
+imageName = "zz_astropi_1_photo_"
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -85,7 +86,7 @@ while (now_time < start_time + datetime.timedelta(minutes=178)):
         
         #COPYING PHOTO FROM INITIAL DIRECTORY TO DESTINATION
         if cnt < 455:
-            shutil.copy2((src + cnt), dst)
+            shutil.copy2((src+ imageName + cnt), dst)
             photo_counter+=1
             cnt += 1
         else:
