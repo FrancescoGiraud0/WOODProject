@@ -11,11 +11,12 @@ def avg_center(percentage, path):
     img = cv.imread(path)
     height,width,_ = img.shape
 
-    centerX = (width // 2 ) #
-    centerY = (height // 2)                                                                  
+    centerX = (width // 2 )
+    centerY = (height // 2)
+
                                                             # XLB,YTB --->    #####  <---- XRB,YTB
-                                                                                #   #
-                                                                                #   #
+                                                                              #   #
+                                                                              #   #
                                                             # XLB,YBB ---->   #####  <---- XRB,YBB
 
     #RightBorder 
