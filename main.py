@@ -28,7 +28,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 sh = SenseHat()
 
 # Set a logfile name
-logzero.logfile(dir_path+"/logData.csv")
+logzero.logfile(dir_path+"/data_01.csv")
 
 # Set a custom formatter
 formatter = logging.Formatter('%(name)s - %(asctime)-15s - %(levelname)s: %(message)s');
@@ -36,18 +36,22 @@ logzero.formatter(formatter)
 
 # Latest TLE data for ISS location
 name = "ISS (ZARYA)"
-l1 = "1 25544U 98067A   18030.93057008  .00011045  00000-0  17452-3 0  9997"
-l2 = "2 25544  51.6392 342.9681 0002977  45.8872  32.8379 15.54020911 97174"
+l1   = "1 25544U 98067A   18032.92935684  .00002966  00000-0  52197-4 0  99911 25544U 98067A   18032.92935684  .00002966  00000-0  52197-4 0  9991"
+l2   = "2 25544  51.6438 332.9972 0003094  62.2964  46.0975 15.54039537 97480"
 iss = ephem.readtle(name, l1, l2)
 
-# Picamera resolution
-cam_resolution = (3280,2464)
+# Picamera resolution and framerate
+cam_resolution = (2592,1952) #(2592,1944)
+cam_framerate = 32
 
 # Set up camera
 cam = PiCamera()
-# Set the max resolution
+# Set the resolution
 cam.resolution = cam_resolution
-# Set raw capture
+# Set the framerate
+cam.framerate = cam_framerate
+
+# Set rawCapture
 rawCapture = PiRGBArray(cam, size=cam_resolution)
 #--------------------------------
 
@@ -81,13 +85,14 @@ def get_latlon():
     cam.exif_tags['GPS.GPSLatitude'] = '%d/1,%d/1,%d/10' % (
         lat_value[0], lat_value[1], lat_value[2]*10 )
     
-    return(str(lat_value), str(long_value))
+    return str(lat_value), str(long_value)
 
 # functions/avgColorValue.py
-def avg_color_value():
+def avg_color_value(img, percentage = 10 ,threshold_list = [0,0,0]):
     '''
     This function returns  a numpy array containing the average bgr value of a
-    certain percentage of pixels starting from the center of an image.
+    certain percentage of pixels starting from the center of an image and a boolean.
+    It returns True if it isn't night.
     '''
 
     bgr_list = []
@@ -118,18 +123,19 @@ def avg_color_value():
     average_value = np.average(numpy_bgr_array,axis=0)
     average_value = average_value.astype(int)
 
-    return average_value,True 
+    return average_value, True
 
-def read_data(photo_counter):
+def read_sh_data(date_time):
     # Read some data from the Sense Hat, rounded to 4 decimal places
     temperature = round(sh.get_temperature(),4)
     humidity = round(sh.get_humidity(),4)
 
     # get latitude and longitude
-    lat, lon = get_latlon()
+    #lat, lon = get_latlon()
+    lat, lon = 0,0
 
     # Save the data to the file
-    logger.info("%s,%s,%s,%s,%s", photo_counter, lat, lon, humidity, temperature )
+    logger.info("%s,%s,%s,%s", lat, lon, humidity, temperature)
 #--------------------------------
 
 def run():
@@ -141,21 +147,32 @@ def run():
     # run a loop for 2 minutes
     photo_counter = 1
 
-    while (now_time < start_time + datetime.timedelta(minutes=178)):
+    while (now_time < start_time + datetime.timedelta(minutes=5)):
         try:
-            # Function 
-            read_data(photo_counter)
+            # Function that read all data from sense hat
+            read_sh_data(now_time)
 
-            time.sleep(0.1)
+            sleep(0.1)
 
             # Take a pic 
-            camera.capture(rawCapture, format="bgr")
+            cam.capture(rawCapture, format="bgr")
             image = rawCapture.array
             
-            # Use zfill to pad the integer value used in filename to 3 digits (e.g. 001, 002...)
-            #cam.capture(dir_path+"/photo_" + str(photo_counter).zfill(3) + ".jpg")
+            avg_value , take_pic = avg_color_value(image)
+
+            logger.info("%s, %s", avg_value, take_pic)
+
+            if take_pic:
+                # Use zfill to pad the integer value used in filename to 3 digits (e.g. 001, 002...)
+                file_name = dir_path + "/img_" + str(photo_counter).zfill(3) + ".jpg"
+                # Save the image
+                cv.imwrite(file_name, image)
+                photo_counter += 1
             
-            # update the current time
+            # !!!
+            rawCapture.truncate(0)
+
+            # Update the current time
             now_time = datetime.datetime.now()
 
         except Exception as e:
