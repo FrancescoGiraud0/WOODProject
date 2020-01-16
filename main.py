@@ -36,8 +36,8 @@ logzero.formatter(formatter)
 
 # Latest TLE data for ISS location
 name = "ISS (ZARYA)"
-l1   = "1 25544U 98067A   18032.92935684  .00002966  00000-0  52197-4 0  99911 25544U 98067A   18032.92935684  .00002966  00000-0  52197-4 0  9991"
-l2   = "2 25544  51.6438 332.9972 0003094  62.2964  46.0975 15.54039537 97480"
+l1 = '1 25544U 98067A   20016.35580316  .00000752  00000-0  21465-4 0  9996'
+l2 = '2 25544  51.6452  24.6741 0004961 136.6310 355.9024 15.49566400208322'
 iss = ephem.readtle(name, l1, l2)
 
 # Picamera resolution and framerate
@@ -87,6 +87,76 @@ def get_latlon():
     
     return str(lat_value), str(long_value)
 
+
+#NDVI Calculation
+#Input: an RGB image frame from infrablue source (blue is blue, red is pretty much infrared)
+#Output: an RGB frame with equivalent NDVI of the input frame
+def NDVICalc(original):
+    "This function performs the NDVI calculation and returns an RGB frame)"
+    lowerLimit = 5 #this is to avoid divide by zero and other weird stuff when color is near black
+
+    #First, make containers
+    oldHeight,oldWidth = original[:,:,0].shape; 
+    ndviImage = np.zeros((oldHeight,oldWidth,3),np.uint8) #make a blank RGB image
+    ndvi = np.zeros((oldHeight,oldWidth),np.int) #make a blank b/w image for storing NDVI value
+    red = np.zeros((oldHeight,oldWidth),np.int) #make a blank array for red
+    blue = np.zeros((oldHeight,oldWidth),np.int) #make a blank array for blue
+
+    #Now get the specific channels. Remember: (B , G , R)
+    red = (original[:,:,2]).astype('float')
+    blue = (original[:,:,0]).astype('float')
+
+    #Perform NDVI calculation
+    summ = red+blue
+    summ[summ<lowerLimit] = lowerLimit #do some saturation to prevent low intensity noise
+
+    ndvi = (((red-blue)/(summ)+1)*127).astype('uint8')  #the index
+
+    redSat = (ndvi-128)*2  #red channel
+    bluSat = ((255-ndvi)-128)*2 #blue channel
+    redSat[ndvi<128] = 0; #if the NDVI is negative, no red info
+    bluSat[ndvi>=128] = 0; #if the NDVI is positive, no blue info
+
+
+    #And finally output the image. Remember: (B , G , R)
+    #Red Channel
+    ndviImage[:,:,2] = redSat
+
+    #Blue Channel
+    ndviImage[:,:,0] = bluSat
+
+    #Green Channel
+    ndviImage[:,:,1] = 255-(bluSat+redSat)
+
+    return ndviImage
+
+def contrast_stretch(im):
+    """
+    Performs a simple contrast stretch of the given image, from 5-95%.
+    """
+    in_min = np.percentile(im, 5)
+    in_max = np.percentile(im, 95)
+
+    out_min = 0.0
+    out_max = 255.0
+
+    out = im - in_min
+    out *= ((out_min - out_max) / (in_min - in_max))
+    out += in_min
+
+    return out
+
+def calculateNDVI(image):
+    b, g, r = cv.split(image)
+    bottom = (r.astype(float) + b.astype(float))
+    bottom[bottom == 0] = 0.01
+
+    ndvi = (r.astype(float) - b) / bottom
+    ndvi = contrast_stretch(ndvi)
+    ndvi = ndvi.astype(np.uint8)
+    
+    return ndvi
+
 # functions/avgColorValue.py
 def avg_color_value(img, percentage = 10 ,threshold_list = [0,0,0]):
     '''
@@ -131,8 +201,8 @@ def read_sh_data(date_time):
     humidity = round(sh.get_humidity(),4)
 
     # get latitude and longitude
-    #lat, lon = get_latlon()
-    lat, lon = 0,0
+    lat, lon = get_latlon()
+    #lat, lon = 0,0
 
     # Save the data to the file
     logger.info("%s,%s,%s,%s", lat, lon, humidity, temperature)
@@ -152,8 +222,6 @@ def run():
             # Function that read all data from sense hat
             read_sh_data(now_time)
 
-            sleep(0.1)
-
             # Take a pic 
             cam.capture(rawCapture, format="bgr")
             image = rawCapture.array
@@ -164,10 +232,15 @@ def run():
 
             if take_pic:
                 # Use zfill to pad the integer value used in filename to 3 digits (e.g. 001, 002...)
-                file_name = dir_path + "/img_" + str(photo_counter).zfill(3) + ".jpg"
+                #file_name = dir_path + "/img_" + str(photo_counter).zfill(3) + ".jpg"
+                file_name_ndvi1 = dir_path + "/img_" + str(photo_counter).zfill(3) + "_1.jpg"
+                file_name_ndvi2 = dir_path + "/img_" + str(photo_counter).zfill(3) + "_2.jpg"
                 # Save the image
-                cv.imwrite(file_name, image)
+                #cv.imwrite(file_name, image)
+                cv.imwrite(file_name_ndvi1, NDVICalc(image))
+                cv.imwrite(file_name_ndvi2, calculateNDVI(image))
                 photo_counter += 1
+                sleep(5)
             
             # !!!
             rawCapture.truncate(0)
