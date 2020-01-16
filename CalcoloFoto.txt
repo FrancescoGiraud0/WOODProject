@@ -1,0 +1,14 @@
+15,5 orbite al giorno
+40075Km perimetro terra
+
+15,15 orbite : 24 ore = 1 : x
+
+24/15,15 = 1,54 h per un orbita
+
+1,58415 : 1 = x : 60
+
+60*1,58 = 94,8 minuti oppure 1h e 34,8 minuti
+
+40075Km / (94.8Min * 60) = 7km/sec
+
+circa 45 secondi per foto
