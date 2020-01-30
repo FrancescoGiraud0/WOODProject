@@ -34,9 +34,9 @@ def day_or_night(path,percentage):
 
     #----------------
     #average_value = BGR_to_GRAY(average_value)
-    bgr_list = np.uint8([[[bgr_list[0],bgr_list[1],bgr_list[2]]]])
+    average_value = np.uint8([[[average_value[0],average_value[1],average_value[2]]]])
 
-    gray_avg_Values = cv.cvtColor(bgr_list,cv.COLOR_BGR2GRAY)
+    gray_avg_Values = cv.cvtColor(average_value,cv.COLOR_BGR2GRAY)
     gray_avg_Values = np.squeeze(gray_avg_Values)               #qui ho il valore di grigio 
 
     if gray_avg_Values >= MIN_SAVE:
