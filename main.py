@@ -1,13 +1,12 @@
-"""
+'''
 WOOD project data collector
-Author -> WOOD Mission Team
-"""
+Author: WOOD Mission Team
+'''
 
 # Import modules
 # -------------------------------
 import logging
 import logzero
-from logzero import logger
 from sense_hat import SenseHat
 import ephem
 from picamera import PiCamera
@@ -15,7 +14,6 @@ from picamera.array import PiRGBArray
 import datetime
 from time import sleep
 import os
-
 import cv2 as cv
 import numpy as np
 # -------------------------------
@@ -27,41 +25,72 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # Connect to the Sense Hat
 sh = SenseHat()
 
-# Set a logfile name
-logzero.logfile(dir_path+"/data_01.csv")
-
-# Set a custom formatter
-formatter = logging.Formatter('%(name)s - %(asctime)-15s - %(levelname)s: %(message)s');
-logzero.formatter(formatter)
+# Set a custom formatter for information log
+info_formatter = logging.Formatter('%(name)s - %(asctime)-15s - %(levelname)s: %(message)s')
+# Set a custom formatter for data log
+data_formatter = logging.Formatter('%(name)s , %(asctime)-15s , %(message)s')
+# Logger objects creation
+info_logger    = logzero.setup_logger(name='info_logger', logfile=dir_path+'/data01.csv', formatter=info_formatter)
+data_logger    = logzero.setup_logger(name='data_logger', logfile=dir_path+'/data02.csv', formatter=data_formatter)
 
 # Latest TLE data for ISS location
-name = "ISS (ZARYA)"
-l1 = '1 25544U 98067A   20016.35580316  .00000752  00000-0  21465-4 0  9996'
-l2 = '2 25544  51.6452  24.6741 0004961 136.6310 355.9024 15.49566400208322'
-iss = ephem.readtle(name, l1, l2)
+name = 'ISS (ZARYA)'
+l1   = '1 25544U 98067A   20016.35580316  .00000752  00000-0  21465-4 0  9996'
+l2   = '2 25544  51.6452  24.6741 0004961 136.6310 355.9024 15.49566400208322'
+iss  = ephem.readtle(name, l1, l2)
 
 # Picamera resolution and framerate
-cam_resolution = (2592,1952) #(2592,1944)
-cam_framerate = 32
+CAM_RESOLUTION = (2592,1952) #(2592,1944)
+CAM_FRAMERATE  = 32
+DIFF_THRESHOLD = 0.3
 
 # Set up camera
 cam = PiCamera()
 # Set the resolution
-cam.resolution = cam_resolution
+cam.resolution = CAM_RESOLUTION
 # Set the framerate
-cam.framerate = cam_framerate
+cam.framerate = CAM_FRAMERATE
 
 # Set rawCapture
-rawCapture = PiRGBArray(cam, size=cam_resolution)
+rawCapture = PiRGBArray(cam, size = CAM_RESOLUTION)
 #--------------------------------
 
 # Functions
 #--------------------------------
+def contrast_stretch(im):
+    '''
+    This function performs a simple contrast stretch of the given image, from 5-100%.
+    '''
+    in_min = np.percentile(im, 5)
+    in_max = np.percentile(im, 100)
+
+    out_min = 0.0
+    out_max = 255.0
+
+    out = im - in_min
+    out *= ((out_min - out_max) / (in_min - in_max))
+    out += in_min
+
+    return out
+
+def calculateNDVI(image):
+    b, g, r = cv.split(image)
+    bottom = (r.astype(float) + b.astype(float))
+    bottom[bottom == 0] = 0.0000000000001 # Make sure to not divide by zero
+
+    ndvi = (r.astype(float) - b) / bottom
+    ndvi = contrast_stretch(ndvi)
+    ndvi = ndvi.astype(np.uint8)
+    
+    return ndvi
+
 # function to write lat/long to EXIF data for photographs
 def get_latlon():
-    """
-    A function to write lat/long to EXIF data for photographs
-    """
+    '''
+    That function writes latitude and longitude to EXIF data
+    and returns it.
+    '''
+
     iss.compute() # Get the lat/long values from ephem
     long_value = [float(i) for i in str(iss.sublong).split(":")]
 
@@ -87,103 +116,26 @@ def get_latlon():
     
     return str(lat_value), str(long_value)
 
-
-#NDVI Calculation
-#Input: an RGB image frame from infrablue source (blue is blue, red is pretty much infrared)
-#Output: an RGB frame with equivalent NDVI of the input frame
-def NDVICalc(original):
-    "This function performs the NDVI calculation and returns an RGB frame)"
-    lowerLimit = 5 #this is to avoid divide by zero and other weird stuff when color is near black
-
-    #First, make containers
-    oldHeight,oldWidth = original[:,:,0].shape; 
-    ndviImage = np.zeros((oldHeight,oldWidth,3),np.uint8) #make a blank RGB image
-    ndvi = np.zeros((oldHeight,oldWidth),np.int) #make a blank b/w image for storing NDVI value
-    red = np.zeros((oldHeight,oldWidth),np.int) #make a blank array for red
-    blue = np.zeros((oldHeight,oldWidth),np.int) #make a blank array for blue
-
-    #Now get the specific channels. Remember: (B , G , R)
-    red = (original[:,:,2]).astype('float')
-    blue = (original[:,:,0]).astype('float')
-
-    #Perform NDVI calculation
-    summ = red+blue
-    summ[summ<lowerLimit] = lowerLimit #do some saturation to prevent low intensity noise
-
-    ndvi = (((red-blue)/(summ)+1)*127).astype('uint8')  #the index
-
-    redSat = (ndvi-128)*2  #red channel
-    bluSat = ((255-ndvi)-128)*2 #blue channel
-    redSat[ndvi<128] = 0; #if the NDVI is negative, no red info
-    bluSat[ndvi>=128] = 0; #if the NDVI is positive, no blue info
-
-
-    #And finally output the image. Remember: (B , G , R)
-    #Red Channel
-    ndviImage[:,:,2] = redSat
-
-    #Blue Channel
-    ndviImage[:,:,0] = bluSat
-
-    #Green Channel
-    ndviImage[:,:,1] = 255-(bluSat+redSat)
-
-    return ndviImage
-
-def contrast_stretch(im):
-    """
-    Performs a simple contrast stretch of the given image, from 5-95%.
-    """
-    in_min = np.percentile(im, 5)
-    in_max = np.percentile(im, 95)
-
-    out_min = 0.0
-    out_max = 255.0
-
-    out = im - in_min
-    out *= ((out_min - out_max) / (in_min - in_max))
-    out += in_min
-
-    return out
-
-def calculateNDVI(image):
-    b, g, r = cv.split(image)
-    bottom = (r.astype(float) + b.astype(float))
-    bottom[bottom == 0] = 0.01
-
-    ndvi = (r.astype(float) - b) / bottom
-    ndvi = contrast_stretch(ndvi)
-    ndvi = ndvi.astype(np.uint8)
-    
-    return ndvi
-
-# functions/avgColorValue.py
-def avg_color_value(img, percentage = 10 ,threshold_list = [0,0,0]):
+def is_day(img, size_percentage=10, min_threshold=85):
     '''
-    This function returns  a numpy array containing the average bgr value of a
-    certain percentage of pixels starting from the center of an image and a boolean.
-    It returns True if it isn't night.
+    Function that return true if in the center size percentage of the photo,
+    converted to gray color scale the average color value is more bright 
+    than min_threshold (so, more simply, if it's day).
     '''
-
     bgr_list = []
     height,width,_ = img.shape
 
     centerX = (width // 2 )
-    centerY = (height // 2)
-
-    # XLB,YTB --->    #####  <---- XRB,YTB
-    #                 #   #
-    #                 #   #
-    # XLB,YBB ---->   #####  <---- XRB,YBB
+    centerY = (height // 2)                                                                  
 
     #RightBorder 
-    XRB = centerX + ((width * percentage)//200)                    
+    XRB = centerX + ((width * size_percentage)//200)                    
     #LeftBorder
-    XLB = centerX - ((width * percentage)//200)
+    XLB = centerX - ((width * size_percentage)//200)
     #TopBorder
-    YTB = centerY + ((height * percentage)//200)
+    YTB = centerY + ((height * size_percentage)//200)
     #BottomBorder
-    YBB = centerY - ((height * percentage)//200)
+    YBB = centerY - ((height * size_percentage)//200)
 
     for x in range(XLB,XRB):
         for y in range(YBB,YTB):
@@ -191,64 +143,81 @@ def avg_color_value(img, percentage = 10 ,threshold_list = [0,0,0]):
 
     numpy_bgr_array = np.array(bgr_list)
     average_value = np.average(numpy_bgr_array,axis=0)
+
     average_value = average_value.astype(int)
 
-    return average_value, True
+    average_value = np.uint8([[[average_value[0],average_value[1],average_value[2]]]])
 
-def read_sh_data(date_time):
-    # Read some data from the Sense Hat, rounded to 4 decimal places
-    temperature = round(sh.get_temperature(),4)
-    humidity = round(sh.get_humidity(),4)
+    gray_avg_values = cv.cvtColor(average_value,cv.COLOR_BGR2GRAY)
+    gray_avg_values = np.squeeze(gray_avg_values)
 
-    # get latitude and longitude
+    return gray_avg_values >= min_threshold
+
+def read_sh_data(take_pic, photo_id):
+    if not take_pic:
+        photo_id = str(None)
+
+    # Read magnetometer data from the Sense Hat, rounded to 4 decimal places
+    magnetometer_values = sh.get_compass_raw()
+    magnetometer_values = map(lambda n: round(n,4), magnetometer_values)
+    mag_x, mag_y, mag_z = magnetometer_values
+
+    # Get latitude and longitude
     lat, lon = get_latlon()
-    #lat, lon = 0,0
 
-    # Save the data to the file
-    logger.info("%s,%s,%s,%s", lat, lon, humidity, temperature)
+    # Save the data to the log file
+    data_logger.info("%s , %s , %s , %s , %s", photo_id, lat, lon, mag_x, mag_y, mag_z)
 #--------------------------------
 
 def run():
-    # create a datetime variable to store the start time
+    # Creation of a datetime variable to store the start time
     start_time = datetime.datetime.now()
-    # create a datetime variable to store the current time
+    # Creation of a datetime variable to store the current time
     # (these will be almost the same at the start)
     now_time = datetime.datetime.now()
-    # run a loop for 2 minutes
+    
+    # Counter to store the number of saved photos
     photo_counter = 1
 
+    info_logger.info('Starting the experiment')
+
+    # This will loop for 3 hours
     while (now_time < start_time + datetime.timedelta(minutes=5)):
         try:
-            # Function that read all data from sense hat
-            read_sh_data(now_time)
-
             # Take a pic 
             cam.capture(rawCapture, format="bgr")
             image = rawCapture.array
             
-            avg_value , take_pic = avg_color_value(image)
+            take_pic = is_day(image)
 
-            logger.info("%s, %s", avg_value, take_pic)
+            info_logger.debug("Take pic: %s", take_pic)
+
+            # Function that read all data from sense hat
+            read_sh_data(take_pic, photo_counter)
 
             if take_pic:
                 # Use zfill to pad the integer value used in filename to 3 digits (e.g. 001, 002...)
-                #file_name = dir_path + "/img_" + str(photo_counter).zfill(3) + ".jpg"
-                file_name_ndvi1 = dir_path + "/img_" + str(photo_counter).zfill(3) + "_1.jpg"
-                file_name_ndvi2 = dir_path + "/img_" + str(photo_counter).zfill(3) + "_2.jpg"
-                # Save the image
-                #cv.imwrite(file_name, image)
-                cv.imwrite(file_name_ndvi1, NDVICalc(image))
-                cv.imwrite(file_name_ndvi2, calculateNDVI(image))
-                photo_counter += 1
+                file_name = dir_path + "/img_" + str(photo_counter).zfill(3) + ".jpg"
+
+                # Saving the images
+                cv.imwrite(file_name, image)
+
+                info_logger.info('Photo %s saved', photo_counter )
+
+                # Sleep for 5 seconds
                 sleep(5)
+
+                photo_counter += 1
             
-            # !!!
-            rawCapture.truncate(0)
+                # It is necessary to take the next pic
+                rawCapture.truncate(0)
 
             # Update the current time
             now_time = datetime.datetime.now()
 
         except Exception as e:
-            logger.error("An error occurred: " + str(e))
+            info_logger.error("An error occurred: " + str(e))
+
+        info_logger.info('End of the experiment')
 
 run()
