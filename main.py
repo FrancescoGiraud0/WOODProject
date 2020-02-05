@@ -57,32 +57,6 @@ rawCapture = PiRGBArray(cam, size = CAM_RESOLUTION)
 
 # Functions
 #--------------------------------
-def contrast_stretch(im):
-    '''
-    This function performs a simple contrast stretch of the given image, from 5-100%.
-    '''
-    in_min = np.percentile(im, 5)
-    in_max = np.percentile(im, 100)
-
-    out_min = 0.0
-    out_max = 255.0
-
-    out = im - in_min
-    out *= ((out_min - out_max) / (in_min - in_max))
-    out += in_min
-
-    return out
-
-def calculateNDVI(image):
-    b, g, r = cv.split(image)
-    bottom = (r.astype(float) + b.astype(float))
-    bottom[bottom == 0] = 0.0000000000001 # Make sure to not divide by zero
-
-    ndvi = (r.astype(float) - b) / bottom
-    ndvi = contrast_stretch(ndvi)
-    ndvi = ndvi.astype(np.uint8)
-    
-    return ndvi
 
 # function to write lat/long to EXIF data for photographs
 def get_latlon():
@@ -155,12 +129,12 @@ def is_day(img, size_percentage=10, min_threshold=85):
 
 def read_sh_data(take_pic, photo_id):
     if not take_pic:
-        photo_id = str(None)
+        photo_id = '-1'
 
     # Read magnetometer data from the Sense Hat, rounded to 4 decimal places
     magnetometer_values = sh.get_compass_raw()
-    magnetometer_values = map(lambda n: round(n,4), magnetometer_values)
-    mag_x, mag_y, mag_z = magnetometer_values
+    info_logger.debug(f'Magnetometer values: {magnetometer_values}')
+    mag_x, mag_y, mag_z = magnetometer_values['x'], magnetometer_values['y'], magnetometer_values['z']
 
     # Get latitude and longitude
     lat, lon = get_latlon()
@@ -209,8 +183,8 @@ def run():
 
                 photo_counter += 1
             
-                # It is necessary to take the next pic
-                rawCapture.truncate(0)
+            # It is necessary to take the next pic
+            rawCapture.truncate(0)
 
             # Update the current time
             now_time = datetime.datetime.now()
