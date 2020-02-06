@@ -40,12 +40,14 @@ l1   = '1 25544U 98067A   20016.35580316  .00000752  00000-0  21465-4 0  9996'
 l2   = '2 25544  51.6452  24.6741 0004961 136.6310 355.9024 15.49566400208322'
 iss  = ephem.readtle(name, l1, l2)
 
-# Picamera resolution and framerate
-CAM_RESOLUTION = (2592,1952) #(2592,1944)
-CAM_FRAMERATE  = 32
-DIFF_THRESHOLD = 0.3
-PIXEL_THRESHOLD = 6
-ML_MIN_N_OF_SAMPLES = 5
+#CONSTANTS
+CAM_RESOLUTION = (2592,1952) #set the resolution of the camera
+CAM_FRAMERATE  = 32 #framerate camera
+DIFF_THRESHOLD = 0.3 # Minimun threshold of pixel with constrast (Forest-Desert, Forest-Cities, Forest-Soil)
+PIXEL_THRESHOLD = 6 #Divide by 10, is the minimun threshold for the contrast 
+ML_MIN_N_OF_SAMPLES = 100 #Minimun pictures number to start the machine learning algorithm
+SIZE_PERCENTAGE = 30    #Percentage of area to apply is_day function
+CYCLE_TIME = 10 #Cycle time in seconds
 
 # Set up camera
 cam = PiCamera()
@@ -221,7 +223,7 @@ def run():
             cam.capture(rawCapture, format="bgr")
             image = rawCapture.array
         
-            take_pic = is_day(image)
+            take_pic = is_day(image, size_percentage=SIZE_PERCENTAGE)
 
             info_logger.debug("Take pic: %s", take_pic)
 
@@ -254,8 +256,8 @@ def run():
                      except Exception as e_algo:
                         info_logger.error("An algorithm error occurred: " + str(e_algo))
                     
-                # Sleep for 5 seconds
-                sleep(5)
+                # Sleep for CYCLE_TIME seconds value
+                sleep(CYCLE_TIME)
 
                 photo_counter += 1
             
