@@ -195,7 +195,6 @@ def read_sh_data(take_pic, photo_id):
 
     # Read magnetometer data from the Sense Hat, rounded to 4 decimal places
     magnetometer_values = sh.get_compass_raw()
-    info_logger.debug(f'Magnetometer values: {magnetometer_values}')
     mag_x, mag_y, mag_z = magnetometer_values['x'], magnetometer_values['y'], magnetometer_values['z']
 
     # Get latitude and longitude
@@ -254,7 +253,7 @@ def run():
                             kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(X_data) #Clustering KMEANS algo
                             curr_label = kmeans.predict(curr_sample) #Predicting image label
                             score = kmeans.score(curr_sample)   #get the score of different number of clusters
-                            data_logger.info("%s,N_Clusters: %s, Cluster_%s, Score: %s", photo_counter, n_clusters, str(curr_label[0], score))
+                            data_logger.info( "%s, N_Clusters: %s, Cluster_%s, Score: %s", photo_counter, n_clusters, str(curr_label[0]), str(score) )
                      except Exception as e_algo:
                         info_logger.error("An algorithm error occurred: " + str(e_algo))
                     
