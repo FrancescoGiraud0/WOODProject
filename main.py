@@ -95,42 +95,42 @@ def get_latlon():
     
     return str(lat_value), str(long_value)
 
-def is_day(img, size_percentage=10, min_threshold=85):
+def is_day(img, min_threshold=85):
     '''
     Function that return true if in the center size percentage of the photo,
     converted to gray color scale the average color value is more bright 
     than min_threshold (so, more simply, if it's day).
     '''
     bgr_list = []
-    height,width,_ = img.shape
+    height,width,_ = img.shape  #get image size 
 
-    centerX = (width // 2 )
+    centerX = (width // 2 ) #calculate image's center
     centerY = (height // 2)                                                                  
 
-    #RightBorder 
-    XRB = centerX + ((width * size_percentage)//200)                    
-    #LeftBorder
-    XLB = centerX - ((width * size_percentage)//200)
-    #TopBorder
-    YTB = centerY + ((height * size_percentage)//200)
-    #BottomBorder
-    YBB = centerY - ((height * size_percentage)//200)
+    #calculation RightBorder 
+    XRB = centerX + ((width * SIZE_PERCENTAGE)//200)                    
+    #calculation LeftBorder
+    XLB = centerX - ((width * SIZE_PERCENTAGE)//200)
+    #calculation TopBorder
+    YTB = centerY + ((height * SIZE_PERCENTAGE)//200)
+    #calculation BottomBorder
+    YBB = centerY - ((height * SIZE_PERCENTAGE)//200)
 
     for x in range(XLB,XRB):
         for y in range(YBB,YTB):
-            bgr_list.append(img[y,x])   #this for take the value the value in bgr of every pixel in the pic
+            bgr_list.append(img[y,x])   #take the value in bgr of every pixel in the pic
 
     numpy_bgr_array = np.array(bgr_list)    #convert bgr_list in a numpy array
     average_value = np.average(numpy_bgr_array,axis=0)  #calculate the average value of blue, green and red
 
     average_value = average_value.astype(int)   #convert the type of datas
 
-    average_value = np.uint8([[[average_value[0],average_value[1],average_value[2]]]])  #map the values from 0 to 255  
+    average_value = np.uint8([[[average_value[0],average_value[1],average_value[2]]]])  #map values in uint8 format type 
 
     gray_avg_values = cv.cvtColor(average_value, cv.COLOR_BGR2GRAY)  #convert the color from bgr to grayscale
     gray_avg_values = np.squeeze(gray_avg_values)   #remove single-dimensional entries from the shape of an array
 
-    return gray_avg_values >= min_threshold
+    return gray_avg_values >= min_threshold #return true if gray value is bigger than the threshhold, else return false
 
 def calculateStatisticFast(matrix, pixel_threshold=PIXEL_THRESHOLD, diff_threshold=DIFF_THRESHOLD):
     NDVIGraduation = {
@@ -274,4 +274,3 @@ def run():
     info_logger.info('End of the experiment')
 
 run()
-
