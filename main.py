@@ -41,11 +41,11 @@ l2   = '2 25544  51.6452  24.6741 0004961 136.6310 355.9024 15.49566400208322'
 iss  = ephem.readtle(name, l1, l2)
 
 #CONSTANTS
-CAM_RESOLUTION = (2592,1952) #set the resolution of the camera
-CAM_FRAMERATE  = 32 #framerate camera
+CAM_RESOLUTION = (2592,1944) #set the resolution of the camera
+CAM_FRAMERATE  = 15 #framerate camera
 DIFF_THRESHOLD = 0.3 # Minimun threshold of pixel with constrast (Forest-Desert, Forest-Cities, Forest-Soil)
 PIXEL_THRESHOLD = 6 #Divide by 10, is the minimun threshold for the contrast 
-ML_MIN_N_OF_SAMPLES = 100 #Minimun pictures number to start the machine learning algorithm
+ML_MIN_N_OF_SAMPLES = 50 #Minimun pictures number to start the machine learning algorithm
 SIZE_PERCENTAGE = 30    #Percentage of area to apply is_day function
 CYCLE_TIME = 10 #Cycle time in seconds
 
@@ -202,7 +202,7 @@ def read_sh_data(take_pic, photo_id):
     lat, lon = get_latlon()
 
     # Save the data to the log file
-    data_logger.info("%s, %s , %s , %s , %s , %s", photo_id, lat, lon, mag_x, mag_y, mag_z)
+    data_logger.info("%s, %s , %s , %s , %s , %s", photo_id, lat, lon, round(mag_x, 4), round(mag_y, 4), round(mag_z, 4))
 #--------------------------------
 
 def run():
@@ -234,7 +234,7 @@ def run():
                 NDVI_image = calculateNDVI(image) #NDVI image calc (0-255 range)
                 NDVI_stats = calculateStatisticFast(NDVI_image)
                 
-                data_logger.info("%s, %s", photo_counter, ','.join([str(v) for v in NDVI_stats.values()]))  #store datas in .csv file
+                data_logger.info("%s, %s", photo_counter, ','.join([str(round(v, 4)) for v in NDVI_stats.values()]))  #store datas in .csv file
 
                 # Use zfill to pad the integer value used in filename to 3 digits (e.g. 001, 002...)
                 file_name = dir_path + "/img_" + str(photo_counter).zfill(3) + ".jpg"
@@ -250,9 +250,11 @@ def run():
                 if len(X_data) > ML_MIN_N_OF_SAMPLES:
                      try:
                         info_logger.info("KMEANS is running")
-                        kmeans = KMeans(n_clusters=4, random_state=0).fit(X_data) #Clustering KMEANS algo
-                        curr_label = kmeans.predict(curr_sample) #Predicting image label
-                        data_logger.info("%s, Cluster_%s", photo_counter, str(curr_label[0]))
+                        for n_clusters in range(2, 6):  #try kmeans with different numbers of clusters
+                            kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(X_data) #Clustering KMEANS algo
+                            curr_label = kmeans.predict(curr_sample) #Predicting image label
+                            score = kmeans.score(curr_sample)   #get the score of different number of clusters
+                            data_logger.info("%s,N_Clusters: %s, Cluster_%s, Score: %s", photo_counter, n_clusters, str(curr_label[0], score))
                      except Exception as e_algo:
                         info_logger.error("An algorithm error occurred: " + str(e_algo))
                     
@@ -270,7 +272,7 @@ def run():
         except Exception as e:
             info_logger.error("An error occurred: " + str(e))
 
-        info_logger.info('End of the experiment')
+    info_logger.info('End of the experiment')
 
 run()
 
