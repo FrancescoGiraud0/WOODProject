@@ -1,4 +1,4 @@
-def writeOnimage(img,):
+def writeOnimage(img):
     font= cv.FONT_HERSHEY_SIMPLEX       #text font
     bottomLeftCornerOfText=(0,200)      #bottom Left Corner of the text
     fontScale=0.3                       #text scale
