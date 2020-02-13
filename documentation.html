@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module main</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>main</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/home/pi/main.py">/home/pi/main.py</a></font></td></tr></table>
+    <p><tt>Woods&nbsp;Orbit&nbsp;Observer&nbsp;and&nbsp;Deforestation&nbsp;Sensor&nbsp;Project<br>
+by&nbsp;WOOD&nbsp;Mission&nbsp;Team<br>
+Github:&nbsp;https://github.com/FrancescoGiraud0/WOODProject<br>
+&nbsp;<br>
+Python&nbsp;3&nbsp;algorithm&nbsp;that&nbsp;run&nbsp;for&nbsp;about&nbsp;3&nbsp;hours&nbsp;with&nbsp;the&nbsp;porpuse&nbsp;to<br>
+take&nbsp;near&nbsp;infrared&nbsp;(NIR)&nbsp;pictures&nbsp;of&nbsp;the&nbsp;Earth,&nbsp;record&nbsp;some&nbsp;data&nbsp;like<br>
+latitude,&nbsp;longitude&nbsp;and&nbsp;magnetometer&nbsp;values&nbsp;and&nbsp;try&nbsp;to&nbsp;get&nbsp;some&nbsp;information<br>
+about&nbsp;vegetation,&nbsp;in&nbsp;particular&nbsp;we&nbsp;would&nbsp;try&nbsp;to&nbsp;measure&nbsp;the&nbsp;anthropogenic<br>
+impact&nbsp;by&nbsp;using&nbsp;a&nbsp;ML&nbsp;algorithm.<br>
+We&nbsp;use&nbsp;an&nbsp;unsupervisioned&nbsp;algorithm&nbsp;on&nbsp;board&nbsp;because&nbsp;we&nbsp;didn't&nbsp;have&nbsp;any&nbsp;pictures<br>
+of&nbsp;Earth&nbsp;taked&nbsp;by&nbsp;NoIR&nbsp;Camera&nbsp;+&nbsp;blue&nbsp;filter&nbsp;that&nbsp;permitted&nbsp;us&nbsp;to&nbsp;train&nbsp;a&nbsp;supervisioned<br>
+algorithm&nbsp;on&nbsp;it.<br>
+This&nbsp;algorithm&nbsp;have&nbsp;the&nbsp;function&nbsp;<a href="#-calculateNDVI">calculateNDVI</a>()&nbsp;that&nbsp;computes&nbsp;the&nbsp;NDVI&nbsp;(Normalized<br>
+Difference&nbsp;Vegetation&nbsp;Index)&nbsp;of&nbsp;every&nbsp;pixels&nbsp;of&nbsp;each&nbsp;photo&nbsp;taken.<br>
+The&nbsp;NDVI&nbsp;permits&nbsp;to&nbsp;assessing&nbsp;whether&nbsp;or&nbsp;not&nbsp;the&nbsp;target&nbsp;being&nbsp;observed&nbsp;contains<br>
+live&nbsp;green&nbsp;vegetation.<br>
+The&nbsp;function&nbsp;<a href="#-calculate_statistics">calculate_statistics</a>()&nbsp;generates&nbsp;a&nbsp;dictionary&nbsp;by&nbsp;counting&nbsp;the<br>
+number&nbsp;(in&nbsp;percentage)&nbsp;of&nbsp;pixels&nbsp;for&nbsp;every&nbsp;NDVI&nbsp;value&nbsp;mapped&nbsp;from&nbsp;0.0&nbsp;to&nbsp;1.0&nbsp;and&nbsp;<br>
+a&nbsp;'diff'&nbsp;value&nbsp;that&nbsp;is&nbsp;a&nbsp;counter&nbsp;(in&nbsp;percentage)&nbsp;of&nbsp;low&nbsp;vegetation&nbsp;pixels&nbsp;near<br>
+every&nbsp;pixels&nbsp;with&nbsp;high&nbsp;vegetation&nbsp;(NDVI&nbsp;value&nbsp;&gt;=&nbsp;0.7).<br>
+When&nbsp;the&nbsp;algorithm&nbsp;saved&nbsp;at&nbsp;least&nbsp;50&nbsp;photos,&nbsp;the&nbsp;dictionaries&nbsp;will&nbsp;be&nbsp;analized&nbsp;by<br>
+KMeans&nbsp;clustering&nbsp;algorithm.</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="cv2.cv2.html">cv2.cv2</a><br>
+<a href="datetime.html">datetime</a><br>
+</td><td width="25%" valign=top><a href="ephem.html">ephem</a><br>
+<a href="logging.html">logging</a><br>
+</td><td width="25%" valign=top><a href="logzero.html">logzero</a><br>
+<a href="numpy.html">numpy</a><br>
+</td><td width="25%" valign=top><a href="os.html">os</a><br>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-calculateNDVI"><strong>calculateNDVI</strong></a>(image)</dt><dd><tt>This&nbsp;function&nbsp;calculates&nbsp;the&nbsp;NDVI&nbsp;(Normalized&nbsp;Difference<br>
+Vegetation&nbsp;Index)&nbsp;for&nbsp;each&nbsp;pixel&nbsp;of&nbsp;the&nbsp;photo&nbsp;and&nbsp;collect<br>
+these&nbsp;values&nbsp;in&nbsp;"ndvi"&nbsp;numpy&nbsp;array.</tt></dd></dl>
+ <dl><dt><a name="-calculate_statistics"><strong>calculate_statistics</strong></a>(ndvi_array, pixel_threshold=0.6, diff_threshold=0.3)</dt><dd><tt>This&nbsp;function&nbsp;generate&nbsp;a&nbsp;dictionary&nbsp;counting&nbsp;the&nbsp;percentage&nbsp;of&nbsp;pixels&nbsp;for&nbsp;every<br>
+NDVI&nbsp;graduations&nbsp;(keys&nbsp;of&nbsp;the&nbsp;dictionary)&nbsp;of&nbsp;a&nbsp;numpy&nbsp;array&nbsp;made&nbsp;of&nbsp;NDVI&nbsp;values<br>
+(a&nbsp;value&nbsp;for&nbsp;every&nbsp;pixel).<br>
+This&nbsp;function&nbsp;also&nbsp;computes&nbsp;the&nbsp;'diff'&nbsp;value,&nbsp;it&nbsp;is&nbsp;the&nbsp;percentage&nbsp;of&nbsp;pixels&nbsp;with<br>
+a&nbsp;low&nbsp;NDVI&nbsp;(less&nbsp;vegetation)&nbsp;near&nbsp;every&nbsp;high&nbsp;NDVI&nbsp;pixels&nbsp;(every&nbsp;pixel&nbsp;with&nbsp;more<br>
+than&nbsp;pixel_threshold&nbsp;NDVI&nbsp;value).</tt></dd></dl>
+ <dl><dt><a name="-contrast_stretch"><strong>contrast_stretch</strong></a>(im)</dt><dd><tt>Performs&nbsp;a&nbsp;simple&nbsp;contrast&nbsp;stretch&nbsp;of&nbsp;the&nbsp;given&nbsp;image,&nbsp;from&nbsp;5-100%.</tt></dd></dl>
+ <dl><dt><a name="-degrees"><strong>degrees</strong></a>(x, /)</dt><dd><tt>Convert&nbsp;angle&nbsp;x&nbsp;from&nbsp;radians&nbsp;to&nbsp;degrees.</tt></dd></dl>
+ <dl><dt><a name="-get_latlon"><strong>get_latlon</strong></a>()</dt><dd><tt>This&nbsp;function&nbsp;return&nbsp;a&nbsp;tuple&nbsp;with&nbsp;the&nbsp;position&nbsp;of&nbsp;the&nbsp;ISS.<br>
+In&nbsp;particular&nbsp;it&nbsp;returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;DMS&nbsp;position&nbsp;string&nbsp;with&nbsp;the&nbsp;coordinates&nbsp;in&nbsp;DMS&nbsp;format<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(with&nbsp;meridians&nbsp;and&nbsp;parallels&nbsp;reference&nbsp;-&gt;&nbsp;N/S&nbsp;W/E)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;latitude&nbsp;decimal&nbsp;degrees&nbsp;rounded&nbsp;by&nbsp;8&nbsp;decimal&nbsp;digits<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;longitude&nbsp;decimal&nbsp;degrees&nbsp;rounded&nbsp;by&nbsp;8&nbsp;decimal&nbsp;digits</tt></dd></dl>
+ <dl><dt><a name="-is_day"><strong>is_day</strong></a>(img, size_percentage=30, min_threshold=80)</dt><dd><tt>Function&nbsp;that&nbsp;return&nbsp;true&nbsp;if&nbsp;in&nbsp;the&nbsp;center&nbsp;size&nbsp;percentage&nbsp;of&nbsp;the&nbsp;photo<br>
+(converted&nbsp;to&nbsp;gray&nbsp;color&nbsp;scale)&nbsp;the&nbsp;average&nbsp;color&nbsp;value&nbsp;is&nbsp;more&nbsp;bright&nbsp;<br>
+than&nbsp;min_threshold&nbsp;(so,&nbsp;more&nbsp;simply,&nbsp;if&nbsp;it's&nbsp;day).</tt></dd></dl>
+ <dl><dt><a name="-run"><strong>run</strong></a>()</dt><dd><tt>Main&nbsp;function&nbsp;that&nbsp;call&nbsp;other&nbsp;functions.<br>
+It&nbsp;basically&nbsp;consists&nbsp;in&nbsp;a&nbsp;while&nbsp;loop&nbsp;that&nbsp;manage&nbsp;the&nbsp;experiment<br>
+duration&nbsp;with&nbsp;a&nbsp;<a href="#-sleep">sleep</a>()&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;cycle&nbsp;in&nbsp;order&nbsp;to&nbsp;not<br>
+record&nbsp;too&nbsp;much&nbsp;data&nbsp;and&nbsp;to&nbsp;not&nbsp;take&nbsp;too&nbsp;much&nbsp;photos.<br>
+We&nbsp;have&nbsp;choosen&nbsp;to&nbsp;write&nbsp;the&nbsp;coordinates&nbsp;of&nbsp;the&nbsp;iss&nbsp;on&nbsp;the&nbsp;photos<br>
+using&nbsp;a&nbsp;watermark&nbsp;because&nbsp;we&nbsp;need&nbsp;to&nbsp;analyze&nbsp;the&nbsp;photo&nbsp;before<br>
+saving&nbsp;it,&nbsp;so&nbsp;saves&nbsp;it&nbsp;and&nbsp;read&nbsp;it&nbsp;immediately&nbsp;after&nbsp;would&nbsp;<br>
+significantly&nbsp;slow&nbsp;down&nbsp;the&nbsp;execution.</tt></dd></dl>
+ <dl><dt><a name="-sleep"><strong>sleep</strong></a>(...)</dt><dd><tt><a href="#-sleep">sleep</a>(seconds)<br>
+&nbsp;<br>
+Delay&nbsp;execution&nbsp;for&nbsp;a&nbsp;given&nbsp;number&nbsp;of&nbsp;seconds.&nbsp;&nbsp;The&nbsp;argument&nbsp;may&nbsp;be<br>
+a&nbsp;floating&nbsp;point&nbsp;number&nbsp;for&nbsp;subsecond&nbsp;precision.</tt></dd></dl>
+ <dl><dt><a name="-writeOnimage"><strong>writeOnimage</strong></a>(img, text)</dt><dd><tt>This&nbsp;simple&nbsp;function&nbsp;apply&nbsp;a&nbsp;watermark&nbsp;on&nbsp;the&nbsp;bottom&nbsp;left&nbsp;corner&nbsp;of&nbsp;a<br>
+photo&nbsp;with&nbsp;2592x1944&nbsp;resolution.<br>
+We&nbsp;use&nbsp;it&nbsp;to&nbsp;write&nbsp;the&nbsp;latitude&nbsp;and&nbsp;longitude&nbsp;of&nbsp;where&nbsp;was&nbsp;taked&nbsp;the<br>
+photo.</tt></dd></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>CAM_FRAMERATE</strong> = 15<br>
+<strong>CAM_RESOLUTION</strong> = (2592, 1944)<br>
+<strong>CYCLE_TIME</strong> = 7<br>
+<strong>DIFF_THRESHOLD</strong> = 0.3<br>
+<strong>MIN_GREY_COLOR_VALUE</strong> = 70<br>
+<strong>ML_MIN_N_OF_SAMPLES</strong> = 50<br>
+<strong>PIXEL_THRESHOLD</strong> = 0.6<br>
+<strong>SIZE_PERCENTAGE</strong> = 30<br>
+<strong>cam</strong> = &lt;picamera.camera.PiCamera object&gt;<br>
+<strong>data_formatter</strong> = &lt;logging.Formatter object&gt;<br>
+<strong>data_logger</strong> = &lt;Logger data_logger (DEBUG)&gt;<br>
+<strong>dir_path</strong> = '/home/pi'<br>
+<strong>info_formatter</strong> = &lt;logging.Formatter object&gt;<br>
+<strong>info_logger</strong> = &lt;Logger info_logger (DEBUG)&gt;<br>
+<strong>iss</strong> = &lt;ephem.EarthSatellite 'ISS (ZARYA)'&gt;<br>
+<strong>l1</strong> = '1 25544U 98067A   20016.35580316  .00000752  00000-0  21465-4 0  9996'<br>
+<strong>l2</strong> = '2 25544  51.6452  24.6741 0004961 136.6310 355.9024 15.49566400208322'<br>
+<strong>name</strong> = 'ISS (ZARYA)'<br>
+<strong>rawCapture</strong> = &lt;picamera.array.PiRGBArray object&gt;<br>
+<strong>sh</strong> = &lt;sense_hat.sense_hat.SenseHat object&gt;</td></tr></table>
+</body></html>
